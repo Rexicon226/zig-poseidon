@@ -28,10 +28,12 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     fuzz_exe.root_module.addImport("poseidon", lib);
+    fuzz_exe.root_module.omit_frame_pointer = false;
     b.installArtifact(fuzz_exe);
 
     const fuzz_step = b.step("fuzz", "Fuzzes the library");
     const run_fuzz = b.addRunArtifact(fuzz_exe);
+    if (b.args) |args| run_fuzz.addArgs(args);
     fuzz_step.dependOn(&run_fuzz.step);
 
     const bench_exe = b.addExecutable(.{

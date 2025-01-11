@@ -59,6 +59,9 @@ pub const Hasher = struct {
 
     pub fn append(hasher: *Hasher, bytes: []const u8) !void {
         const integer = std.mem.readInt(u256, bytes[0..32], hasher.endian);
+        if (integer >= Element.MODULUS) {
+            return error.LargerThanMod;
+        }
         const element = Element.fromInteger(integer);
         try hasher.state.append(element);
     }
@@ -128,8 +131,8 @@ pub const Element = struct {
     value: u256,
 
     const ZERO: Element = .{ .value = 0 };
-    /// The prime field modulus.
-    const MODULUS = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
+    /// The prime field modulus. NOT in Montgomery form.
+    pub const MODULUS = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
     /// `R = M % MODULUS` where `M` is the power of `2^64` closest to the number of bits
     ///  required to represent the field modulus.
     const R = computeR() catch @panic("failed to compute R");
