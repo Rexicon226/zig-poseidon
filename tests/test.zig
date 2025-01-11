@@ -1,5 +1,5 @@
 const std = @import("std");
-const Hasher = @import("lib.zig").Hasher;
+const Hasher = @import("poseidon").Hasher;
 
 const expectEqualSlices = std.testing.expectEqualSlices;
 
