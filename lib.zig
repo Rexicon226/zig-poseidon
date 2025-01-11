@@ -59,7 +59,7 @@ pub const Hasher = struct {
 
     pub fn append(hasher: *Hasher, bytes: []const u8) !void {
         const integer = std.mem.readInt(u256, bytes[0..32], hasher.endian);
-        const element = try Element.fromInteger(integer);
+        const element = Element.fromInteger(integer);
         try hasher.state.append(element);
     }
 
@@ -215,7 +215,7 @@ pub const Element = struct {
         return out;
     }
 
-    fn fromInteger(integer: u256) !Element {
+    pub fn fromInteger(integer: u256) Element {
         var out: Element = undefined;
         fiat.fiatBn254ScalarToMontgomery(&out.value, @bitCast(integer));
         return out;
