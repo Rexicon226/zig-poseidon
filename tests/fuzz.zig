@@ -14,9 +14,6 @@ pub fn main() !void {
         else => std.heap.c_allocator,
     };
 
-    var prng = std.Random.DefaultPrng.init(0);
-    const random = prng.random();
-
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
     _ = arg_iter.next();
@@ -28,7 +25,29 @@ pub fn main() !void {
     defer allocator.free(buffer);
 
     var node = std.Progress.start(.{ .root_name = "Runs" });
-    defer node.end();
+
+    var threads = std.ArrayList(std.Thread).init(allocator);
+    const num_threads = @max(1, (std.Thread.getCpuCount() catch 1));
+    for (0..num_threads) |_| {
+        const thread = try std.Thread.spawn(.{}, worker, .{ &node, other_script });
+        try threads.append(thread);
+    }
+    for (threads.items) |thread| {
+        thread.join();
+    }
+}
+
+fn worker(node: *std.Progress.Node, other_script: []const u8) !void {
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
+    defer _ = gpa.deinit();
+    const allocator = switch (builtin.mode) {
+        .Debug => gpa.allocator(),
+        else => std.heap.c_allocator,
+    };
+    const random = std.crypto.random;
+
+    const buffer = try allocator.alloc(u8, 12 * 32);
+    defer allocator.free(buffer);
 
     while (true) {
         const length = random.intRangeAtMost(u32, 1, 12);
