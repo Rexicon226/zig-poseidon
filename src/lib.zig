@@ -148,6 +148,7 @@ pub const Element = struct {
         return 0xC2E1F593EFFFFFFF;
     }
 
+    /// Adds two field elements in the Montgomery domain.
     fn add(self: *Element, other: Element) void {
         var sum = self.value + other.value;
         if (sum >= Element.MODULUS) {
@@ -156,6 +157,7 @@ pub const Element = struct {
         self.value = @bitCast(sum);
     }
 
+    /// Multiplies two field elements in the Montgomery domain.
     fn mul(self: *Element, other: Element) void {
         const a = self.value;
         const c = other.value;
@@ -192,25 +194,17 @@ pub const Element = struct {
         self.value = result;
     }
 
-    inline fn cast(comptime DestType: type, target: anytype) DestType {
-        @setEvalBranchQuota(10000);
-        if (@typeInfo(@TypeOf(target)) == .Int) {
-            const dest = @typeInfo(DestType).Int;
-            const source = @typeInfo(@TypeOf(target)).Int;
-            if (dest.bits < source.bits) {
-                const T = std.meta.Int(source.signedness, dest.bits);
-                return @bitCast(@as(T, @truncate(target)));
-            }
-        }
-        return target;
-    }
-
+    /// Squares a field element in the Montgomery domain.
+    ///
+    /// NOTE: Just performs `self.mul(self)` for now, I don't think
+    /// there's a more efficient solution?
     fn square(self: Element) Element {
         var out: Element = self;
         out.mul(self);
         return out;
     }
 
+    /// Translates a field element out of the Montgomery domain.
     fn fromMontgomery(self: Element) Element {
         const product: u256 = @truncate(@as(u512, self.value) * @as(u512, N));
         const mod_prod = @as(u512, product) * @as(u512, MODULUS);
@@ -224,6 +218,7 @@ pub const Element = struct {
         return .{ .value = result };
     }
 
+    /// Translates a field element into of the Montgomery domain.
     pub fn fromInteger(integer: u256) Element {
         const product = @as(u512, integer) *
             @as(u512, 0x216d0b17f4e44a58c49833d53bb808553fe3ab1e35c59e31bb8e645ae216da7);
@@ -241,6 +236,8 @@ pub const Element = struct {
         return .{ .value = result };
     }
 
+    /// A helper function for the parameters list. Assumes the array is little endian
+    /// and already in Montgomery form.
     pub fn fromArray(array: [4]u64) Element {
         return .{ .value = @bitCast(array) };
     }
