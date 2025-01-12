@@ -1,5 +1,6 @@
 const std = @import("std");
-const Hasher = @import("poseidon").Hasher;
+const poseidon = @import("poseidon");
+const Hasher = poseidon.Hasher;
 
 const expectEqualSlices = std.testing.expectEqualSlices;
 
