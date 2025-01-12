@@ -15,7 +15,7 @@ pub fn main() !void {
         try stdout.print("Benchmarking poseidon_bn254_x5_{d}: ", .{i});
         const input = try gpa.alloc(u8, i * 32);
         for (std.mem.bytesAsSlice(u256, input)) |*item| {
-            item.* = random.uintLessThan(u256, poseidon.Element.MODULUS);
+            item.* = random.uintLessThan(u256, poseidon.MODULUS);
         }
 
         var j: u64 = 0;

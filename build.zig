@@ -4,18 +4,25 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addModule("poseidon", .{
-        .root_source_file = b.path("src/lib.zig"),
+    const ff_mod = b.addModule("ff", .{
+        .root_source_file = b.path("ff/ff.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    const poseidon_mod = b.addModule("poseidon", .{
+        .root_source_file = b.path("poseidon/poseidon.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    poseidon_mod.addImport("ff", ff_mod);
 
     const test_exe = b.addTest(.{
         .root_source_file = b.path("tests/test.zig"),
         .target = target,
         .optimize = optimize,
     });
-    test_exe.root_module.addImport("poseidon", lib);
+    test_exe.root_module.addImport("poseidon", poseidon_mod);
 
     const test_step = b.step("test", "Tests the library");
     const run_test = b.addRunArtifact(test_exe);
@@ -28,7 +35,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     fuzz_exe.linkLibC();
-    fuzz_exe.root_module.addImport("poseidon", lib);
+    fuzz_exe.root_module.addImport("poseidon", poseidon_mod);
     fuzz_exe.root_module.omit_frame_pointer = false;
     b.installArtifact(fuzz_exe);
 
@@ -44,7 +51,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     bench_exe.linkLibC();
-    bench_exe.root_module.addImport("poseidon", lib);
+    bench_exe.root_module.addImport("poseidon", poseidon_mod);
     b.installArtifact(bench_exe);
 
     const bench_step = b.step("bench", "Benches the library");
