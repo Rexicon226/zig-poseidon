@@ -166,29 +166,23 @@ pub const Element = struct {
         const low_prod: u256 = @truncate(product);
         const high_prod: u256 = @intCast(product >> 256);
 
-        const reduced: u256 = @truncate(@as(u512, low_prod) * @as(u512, N));
+        const reduced: u256 = low_prod *% N;
 
         const mod_prod = @as(u512, reduced) * MODULUS;
         const low_mod_prod: u256 = @truncate(mod_prod);
         const high_mod_prod: u256 = @intCast(mod_prod >> 256);
-
-        const interm_sum = @as(u512, low_prod) + @as(u512, low_mod_prod);
-        const carry1: u1 = @truncate(interm_sum >> 256);
+        const carry1 = @addWithOverflow(low_prod, low_mod_prod)[1];
 
         const final_sum = @as(u512, carry1) + @as(u512, high_prod) + @as(u512, high_mod_prod);
         const low_final_sum: u256 = @truncate(final_sum);
         const carry2: u1 = @truncate(final_sum >> 256);
 
         const adjusted_diff = -@as(i512, low_final_sum) - @as(i512, MODULUS);
-        const is_negative: i1 = @truncate(adjusted_diff >> 256);
+        const is_negative: u1 = @bitCast(@as(i1, @truncate(adjusted_diff >> 256)));
         const low_adjusted_diff: u256 = @bitCast(@as(i256, @truncate(adjusted_diff)));
-        const negative_flag: u1 = @bitCast(@as(i1, @truncate(-@as(i2, is_negative))));
 
-        const carry_adjust = (@as(i512, carry2) - @as(i512, negative_flag));
-        const is_carry_adjusted: i1 = @truncate(carry_adjust >> 256);
-        const final_flag: u1 = @bitCast(@as(i1, @truncate(-@as(i2, is_carry_adjusted))));
-
-        const masked_value: u256 = @bitCast(-@as(i256, final_flag));
+        const is_carry_adjusted = @subWithOverflow(carry2, is_negative)[1];
+        const masked_value: u256 = @bitCast(-@as(i256, is_carry_adjusted));
         const result: u256 = (masked_value & low_final_sum) | ((~masked_value) & low_adjusted_diff);
 
         self.value = result;
@@ -196,8 +190,8 @@ pub const Element = struct {
 
     /// Squares a field element in the Montgomery domain.
     ///
-    /// NOTE: Just performs `self.mul(self)` for now, I don't think
-    /// there's a more efficient solution?
+    /// NOTE: Just performs `self.mul(self)` for now, I'm not aware
+    /// of a better solution.
     fn square(self: Element) Element {
         var out: Element = self;
         out.mul(self);
@@ -207,7 +201,7 @@ pub const Element = struct {
     /// Translates a field element out of the Montgomery domain.
     fn fromMontgomery(self: Element) Element {
         const product: u256 = @truncate(@as(u512, self.value) * @as(u512, N));
-        const mod_prod = @as(u512, product) * @as(u512, MODULUS);
+        const mod_prod = @as(u512, product) * MODULUS;
         const low_mod_prod: u256 = @truncate(mod_prod);
         const high_mod_prod: u256 = @truncate(mod_prod >> 256);
         const add_overflow: u1 = @addWithOverflow(self.value, low_mod_prod)[1];
@@ -225,7 +219,7 @@ pub const Element = struct {
         const low_prod: u256 = @truncate(product);
         const high_prod: u256 = @truncate(product >> 256);
         const n_prod: u256 = @truncate(@as(u512, low_prod) * @as(u512, N));
-        const mod_prod = @as(u512, n_prod) * @as(u512, MODULUS);
+        const mod_prod = @as(u512, n_prod) * MODULUS;
         const low_mod_prod: u256 = @truncate(mod_prod);
         const high_mod_prod: u256 = @truncate(mod_prod >> 256);
         const add_overflow = @addWithOverflow(low_prod, low_mod_prod)[1];
