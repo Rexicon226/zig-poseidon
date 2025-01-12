@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+    fuzz_exe.linkLibC();
     fuzz_exe.root_module.addImport("poseidon", lib);
     fuzz_exe.root_module.omit_frame_pointer = false;
     b.installArtifact(fuzz_exe);
@@ -42,6 +43,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+    bench_exe.linkLibC();
     bench_exe.root_module.addImport("poseidon", lib);
     b.installArtifact(bench_exe);
 
