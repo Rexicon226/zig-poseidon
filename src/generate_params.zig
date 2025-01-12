@@ -4,7 +4,7 @@
 //! https://extgit.isec.tugraz.at/krypto/hadeshash/-/blob/master/code/generate_parameters_grain.sage
 
 const std = @import("std");
-const fiat = @import("fiat.zig");
+const poseidon = @import("lib.zig");
 
 const R_F = 8;
 const R_P = 57;
@@ -24,10 +24,9 @@ pub fn main() !void {
     const round_constants = try generator.generateConstants(allocator);
     defer allocator.free(round_constants);
 
+    // Convert to Montgomery form here, so there's need to do it at runtime later.
     for (round_constants) |*constant| {
-        var mont: u256 = undefined;
-        fiat.fiatBn254ScalarToMontgomery(&mont, .{constant.*});
-        constant.* = mont;
+        constant.* = poseidon.Element.fromInteger(constant.*).value;
     }
 
     const mds = try generator.createMDS(allocator);

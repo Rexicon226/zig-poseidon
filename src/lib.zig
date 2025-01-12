@@ -1,5 +1,4 @@
 const std = @import("std");
-const fiat = @import("fiat.zig");
 
 const PARAMS: [12]Hasher.Params = .{
     @import("params.zig").BN256_x5_2,
@@ -226,40 +225,20 @@ pub const Element = struct {
     }
 
     pub fn fromInteger(integer: u256) Element {
-        var out: Element = undefined;
-        fiat.fiatBn254ScalarToMontgomery(&out.value, @bitCast(integer));
-        return out;
-    }
-
-    pub fn fiatBn254ScalarMulxU256(out1: *u256, out2: *u256, arg1: u256, arg2: u256) void {
-        const x1 = (@as(u512, arg1) * @as(u512, arg2));
-        const x2: u256 = @truncate(x1);
-        const x3: u256 = @intCast(x1 >> 256);
-        out1.* = x2;
-        out2.* = x3;
-    }
-
-    pub fn fiatBn254ScalarAddcarryxU256(out1: *u256, out2: *u1, arg1: u1, arg2: u256, arg3: u256) void {
-        const x1 = ((@as(u512, arg1) + @as(u512, arg2)) + @as(u512, arg3));
-        const x2: u256 = @truncate(x1 & @as(u512, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff));
-        const x3: u1 = @truncate(x1 >> 256);
-        out1.* = x2;
-        out2.* = x3;
-    }
-    pub fn fiatBn254ScalarSubborrowxU256(out1: *u256, out2: *u1, arg1: u1, arg2: u256, arg3: u256) void {
-        const x1 = ((@as(i512, arg2) - @as(i512, arg1)) - @as(i512, arg3));
-        const x2: i1 = @truncate(x1 >> 256);
-        const x3: u256 = @bitCast(@as(i256, @truncate(x1)));
-        out1.* = x3;
-        out2.* = @as(u1, @bitCast(@as(i1, @truncate(@as(i2, 0x0) - @as(i2, x2)))));
-    }
-
-    pub fn fiatBn254ScalarCmovznzU256(out1: *u256, arg1: u1, arg2: u256, arg3: u256) void {
-        const x1 = (~(~arg1));
-        const temp1: i1 = @truncate(@as(i2, 0x0) - @as(i2, x1));
-        const x2: u256 = @bitCast(@as(i256, temp1));
-        const x3 = ((x2 & arg3) | ((~x2) & arg2));
-        out1.* = x3;
+        const product = @as(u512, integer) *
+            @as(u512, 0x216d0b17f4e44a58c49833d53bb808553fe3ab1e35c59e31bb8e645ae216da7);
+        const low_prod: u256 = @truncate(product);
+        const high_prod: u256 = @truncate(product >> 256);
+        const n_prod: u256 = @truncate(@as(u512, low_prod) * @as(u512, N));
+        const mod_prod = @as(u512, n_prod) * @as(u512, MODULUS);
+        const low_mod_prod: u256 = @truncate(mod_prod);
+        const high_mod_prod: u256 = @truncate(mod_prod >> 256);
+        const add_overflow = @addWithOverflow(low_prod, low_mod_prod)[1];
+        const adjusted_diff = (@as(u256, add_overflow) + high_prod) + high_mod_prod;
+        const carry_adjust, const is_carry_adjusted = @subWithOverflow(adjusted_diff, MODULUS);
+        const is_negative = @subWithOverflow(0, is_carry_adjusted)[1];
+        const result = if (is_negative == 0) carry_adjust else adjusted_diff;
+        return .{ .value = result };
     }
 
     pub fn fromArray(array: [4]u64) Element {
