@@ -176,14 +176,14 @@ pub const Element = struct {
 
         const final_sum = @as(u512, carry1) + @as(u512, high_prod) + @as(u512, high_mod_prod);
         const low_final_sum: u256 = @truncate(final_sum);
-        const carr2: u1 = @truncate(final_sum >> 256);
+        const carry2: u1 = @truncate(final_sum >> 256);
 
         const adjusted_diff = -@as(i512, low_final_sum) - @as(i512, MODULUS);
         const is_negative: i1 = @truncate(adjusted_diff >> 256);
         const low_adjusted_diff: u256 = @bitCast(@as(i256, @truncate(adjusted_diff)));
         const negative_flag: u1 = @bitCast(@as(i1, @truncate(-@as(i2, is_negative))));
 
-        const carry_adjust = (@as(i512, carr2) - @as(i512, negative_flag));
+        const carry_adjust = (@as(i512, carry2) - @as(i512, negative_flag));
         const is_carry_adjusted: i1 = @truncate(carry_adjust >> 256);
         const final_flag: u1 = @bitCast(@as(i1, @truncate(-@as(i2, is_carry_adjusted))));
 
@@ -213,9 +213,16 @@ pub const Element = struct {
     }
 
     fn fromMontgomery(self: Element) Element {
-        var out: Element = undefined;
-        fiat.fiatBn254ScalarFromMontgomery(&out.value, .{self.value});
-        return out;
+        const product: u256 = @truncate(@as(u512, self.value) * @as(u512, N));
+        const mod_prod = @as(u512, product) * @as(u512, MODULUS);
+        const low_mod_prod: u256 = @truncate(mod_prod);
+        const high_mod_prod: u256 = @truncate(mod_prod >> 256);
+        const add_overflow: u1 = @addWithOverflow(self.value, low_mod_prod)[1];
+        const adjusted_diff = add_overflow + high_mod_prod;
+        const carry_adjust, const is_carry_adjusted = @subWithOverflow(adjusted_diff, MODULUS);
+        const is_negative = @subWithOverflow(0, is_carry_adjusted)[1];
+        const result = if (is_negative == 0) carry_adjust else adjusted_diff;
+        return .{ .value = result };
     }
 
     pub fn fromInteger(integer: u256) Element {
