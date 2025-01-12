@@ -14,13 +14,15 @@ pub fn main() !void {
     for (1..13) |i| {
         try stdout.print("Benchmarking poseidon_bn254_x5_{d}: ", .{i});
         const input = try gpa.alloc(u8, i * 32);
-        random.bytes(input);
+        for (std.mem.bytesAsSlice(u256, input)) |*item| {
+            item.* = random.uintLessThan(u256, poseidon.Element.MODULUS);
+        }
 
         var j: u64 = 0;
         var total_ns: u64 = 0;
         while (j < ITERATIONS + WARMUP) : (j += 1) {
             var timer = try std.time.Timer.start();
-            std.mem.doNotOptimizeAway(Hasher.hash(input, .big) catch unreachable);
+            std.mem.doNotOptimizeAway(Hasher.hash(input, .little) catch unreachable);
             if (j > WARMUP) {
                 total_ns += timer.read();
             }
