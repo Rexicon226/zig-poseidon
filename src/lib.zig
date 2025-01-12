@@ -182,8 +182,8 @@ pub const Element = struct {
         const low_adjusted_diff: u256 = @bitCast(@as(i256, @truncate(adjusted_diff)));
 
         const is_carry_adjusted = @subWithOverflow(carry2, is_negative)[1];
-        const masked_value: u256 = @bitCast(-@as(i256, is_carry_adjusted));
-        const result: u256 = (masked_value & low_final_sum) | ((~masked_value) & low_adjusted_diff);
+        const mask = 0 -% @as(u256, is_carry_adjusted);
+        const result: u256 = (mask & low_final_sum) | ((~mask) & low_adjusted_diff);
 
         self.value = result;
     }
