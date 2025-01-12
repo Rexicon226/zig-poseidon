@@ -88,3 +88,7 @@ Benchmarking poseidon_bn254_x5_12: 205 us / iterations ; 535 ns / byte
 ```
 
 TLDR; it is a bit worse than `light-poseidon` with a hint of LLVM's optimizer failing to remove easy stack usages. Much to experiment with, and much to improve on.
+
+### Project Structure
+
+The project is currently put into two separate folders, `ff` and `poseidon`. This is mainly because I'm hoping to develop the utilities in the `ff` folder enough, such that I will be able to pull it out into its own library. A general library for working with finite fields is something that I'm also interested in working on, but for now, it's happening in parallel.
