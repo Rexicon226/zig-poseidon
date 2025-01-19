@@ -1,5 +1,11 @@
 const std = @import("std");
-const FieldElement = @import("ff").FieldElement;
+pub const Fe = @import("fe.zig").Field(.{
+    .fiat = @import("bn254_scalar_64.zig"),
+    .field_order = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001,
+    .field_bits = 256,
+    .saturated_bits = 256,
+    .encoded_length = 32,
+});
 
 const PARAMS: [12]Hasher.Params = .{
     @import("params.zig").BN256_x5_2,
@@ -16,19 +22,15 @@ const PARAMS: [12]Hasher.Params = .{
     @import("params.zig").BN256_x5_13,
 };
 
-pub const MODULUS: u254 = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
-
 pub const Hasher = struct {
     endian: std.builtin.Endian,
-    state: std.BoundedArray(Element, 13),
-
-    const Element = FieldElement(u254, MODULUS);
+    state: std.BoundedArray(Fe, 13),
 
     pub const Params = struct {
         /// Round constants.
-        ark: []const Element,
+        ark: []const Fe,
         /// MSD matrix.
-        mds: []const []const Element,
+        mds: []const []const Fe,
         /// The number of full rounds (where S-box is applied to all elements of the state).
         full_rounds: u32,
         /// The number of partial rounds (where S-box is applied only to the first element
@@ -41,8 +43,8 @@ pub const Hasher = struct {
     };
 
     pub fn init(endian: std.builtin.Endian) Hasher {
-        var state: std.BoundedArray(Element, 13) = .{};
-        state.appendAssumeCapacity(Element.ZERO);
+        var state: std.BoundedArray(Fe, 13) = .{};
+        state.appendAssumeCapacity(Fe.zero);
         return .{
             .endian = endian,
             .state = state,
@@ -55,18 +57,14 @@ pub const Hasher = struct {
 
         var iter = std.mem.window(u8, bytes, 32, 32);
         while (iter.next()) |slice| {
-            try hasher.append(slice);
+            try hasher.append(slice[0..32]);
         }
 
         return hasher.finish();
     }
 
-    pub fn append(hasher: *Hasher, bytes: []const u8) !void {
-        const integer = std.mem.readInt(u256, bytes[0..32], hasher.endian);
-        if (integer >= Element.MODULUS) {
-            return error.LargerThanMod;
-        }
-        const element = Element.fromInteger(integer);
+    pub fn append(hasher: *Hasher, bytes: *const [32]u8) !void {
+        const element = try Fe.fromBytes(bytes.*, hasher.endian);
         try hasher.state.append(element);
     }
 
@@ -96,35 +94,30 @@ pub const Hasher = struct {
             hasher.applyMds(params);
         }
 
-        var result = hasher.state.get(0).fromMontgomery();
-        if (hasher.endian == .big) result.value = @byteSwap(result.value);
-        return @bitCast(result.value);
+        var result: u256 = hasher.state.get(0).toInt();
+        if (hasher.endian == .big) result = @byteSwap(result);
+        return @bitCast(result);
     }
 
     fn applyArk(hasher: *Hasher, params: Params, round: u64) void {
         for (hasher.state.slice(), 0..) |*a, i| {
-            a.add(params.ark[round * params.width + i]);
+            a.* = a.add(params.ark[round * params.width + i]);
         }
     }
 
     fn applySBoxFull(hasher: *Hasher, width: u64) void {
-        // compute s[i] ^ 5
         for (hasher.state.slice()[0..width]) |*s| {
-            var t: Element = undefined;
-            t = s.square(); // t = s ^ 2
-            t = t.square(); // t = s ^ 4
-            s.multiply(t); // s = s ^ 5
+            s.* = s.pow(u32, 5);
         }
     }
 
     fn applyMds(hasher: *Hasher, params: Params) void {
         const width = params.width;
-        var buffer: [13]Element = .{Element.ZERO} ** 13;
-        for (0..hasher.state.len) |i| {
+        var buffer: [13]Fe = .{Fe.zero} ** 13;
+        for (buffer[0..hasher.state.len], 0..) |*elem, i| {
             for (hasher.state.slice(), 0..) |*a, j| {
-                var t: Element = a.*;
-                t.multiply(params.mds[i][j]);
-                buffer[i].add(t);
+                const t: Fe = a.mul(params.mds[i][j]);
+                elem.* = elem.add(t);
             }
         }
         @memcpy(hasher.state.slice(), buffer[0..width]);

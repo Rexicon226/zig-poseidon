@@ -4,18 +4,11 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const ff_mod = b.addModule("ff", .{
-        .root_source_file = b.path("ff/ff.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
     const poseidon_mod = b.addModule("poseidon", .{
-        .root_source_file = b.path("poseidon/poseidon.zig"),
+        .root_source_file = b.path("src/poseidon.zig"),
         .target = target,
         .optimize = optimize,
     });
-    poseidon_mod.addImport("ff", ff_mod);
 
     const test_exe = b.addTest(.{
         .root_source_file = b.path("tests/test.zig"),

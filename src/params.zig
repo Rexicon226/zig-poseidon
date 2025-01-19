@@ -1,8 +1,7 @@
 const poseidon = @import("poseidon.zig");
 const Hasher = poseidon.Hasher;
 const MODULUS = poseidon.MODULUS;
-const FieldElement = @import("ff").FieldElement;
-const Element = FieldElement(u254, MODULUS);
+const Element = @import("poseidon.zig").Fe;
 
 const PARTIAL_ROUNDS: [15]u64 = .{ 56, 57, 56, 60, 60, 63, 64, 63, 60, 66, 60, 65, 70, 60, 64 };
 
