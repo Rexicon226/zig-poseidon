@@ -49,5 +49,6 @@ pub fn build(b: *std.Build) !void {
 
     const bench_step = b.step("bench", "Benches the library");
     const run_bench = b.addRunArtifact(bench_exe);
+    if (b.args) |args| run_bench.addArgs(args);
     bench_step.dependOn(&run_bench.step);
 }

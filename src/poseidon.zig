@@ -1,5 +1,6 @@
 const std = @import("std");
-pub const Fe = @import("fe.zig").Field(.{
+pub const Field = @import("fe.zig").Field;
+pub const Fe = Field(.{
     .fiat = @import("bn254_scalar_64.zig"),
     .field_order = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001,
     .field_bits = 256,

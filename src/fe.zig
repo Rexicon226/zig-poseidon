@@ -52,13 +52,13 @@ pub fn Field(comptime params: FieldParams) type {
 
         /// Reject non-canonical encodings of an element.
         pub fn rejectNonCanonical(s_: [encoded_length]u8, endian: std.builtin.Endian) NonCanonicalError!void {
-            var s = if (endian == .little) s_ else orderSwap(s_);
+            const s = if (endian == .little) s_ else orderSwap(s_);
             const field_order_s = comptime fos: {
                 var fos: [encoded_length]u8 = undefined;
                 mem.writeInt(std.meta.Int(.unsigned, encoded_length * 8), &fos, field_order, .little);
                 break :fos fos;
             };
-            if (crypto.utils.timingSafeCompare(u8, &s, &field_order_s, .little) != .lt) {
+            if (@as(u256, @bitCast(s)) >= @as(u256, @bitCast(field_order_s))) {
                 return error.NonCanonical;
             }
         }

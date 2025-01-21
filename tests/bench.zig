@@ -1,19 +1,15 @@
 const std = @import("std");
 const poseidon = @import("poseidon");
 const Hasher = poseidon.Hasher;
+const Fe = poseidon.Fe;
 
-const ITERATIONS = 10_000;
+const ITERATIONS = 6_000;
 const WARMUP = 100;
 
-pub fn sched_setaffinity(pid: std.os.linux.pid_t, set: *const std.os.linux.cpu_set_t) !void {
-    const size = @sizeOf(std.os.linux.cpu_set_t);
-    const rc = std.os.linux.syscall3(.sched_setaffinity, @as(usize, @bitCast(@as(isize, pid))), size, @intFromPtr(set));
+const Benchmarks = enum {
+    hash,
+};
 
-    switch (std.posix.errno(rc)) {
-        .SUCCESS => return,
-        else => |err| return std.posix.unexpectedErrno(err),
-    }
-}
 pub fn main() !void {
     const cpu0001: std.os.linux.cpu_set_t = [1]usize{0b0001} ++ ([_]usize{0} ** (16 - 1));
     try sched_setaffinity(0, &cpu0001);
@@ -23,7 +19,32 @@ pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(10);
     const random = prng.random();
 
-    for (2..3) |i| {
+    var args = try std.process.argsWithAllocator(gpa);
+    defer args.deinit();
+    _ = args.skip();
+
+    var maybe_benchmark: ?Benchmarks = null;
+    while (args.next()) |arg| {
+        if (std.meta.stringToEnum(Benchmarks, arg)) |bench| {
+            if (maybe_benchmark != null) @panic("only one benchmark argument");
+            maybe_benchmark = bench;
+            continue;
+        }
+        @panic("unknown argument");
+    }
+    const benchmark = maybe_benchmark orelse @panic("expected benchmark");
+
+    switch (benchmark) {
+        .hash => try benchHash(gpa, stdout, random),
+    }
+}
+
+fn benchHash(
+    gpa: std.mem.Allocator,
+    stdout: anytype,
+    random: std.Random,
+) !void {
+    for (1..13) |i| {
         try stdout.print("Benchmarking poseidon_bn254_x5_{d}: ", .{i});
         const input = try gpa.alloc(u8, i * 32);
         for (std.mem.bytesAsSlice(u256, input)) |*item| {
@@ -43,5 +64,15 @@ pub fn main() !void {
             "{d} us / iterations ; {d} ns / byte\n",
             .{ average / std.time.ns_per_us, average / input.len },
         );
+    }
+}
+
+pub fn sched_setaffinity(pid: std.os.linux.pid_t, set: *const std.os.linux.cpu_set_t) !void {
+    const size = @sizeOf(std.os.linux.cpu_set_t);
+    const rc = std.os.linux.syscall3(.sched_setaffinity, @as(usize, @bitCast(@as(isize, pid))), size, @intFromPtr(set));
+
+    switch (std.posix.errno(rc)) {
+        .SUCCESS => return,
+        else => |err| return std.posix.unexpectedErrno(err),
     }
 }
