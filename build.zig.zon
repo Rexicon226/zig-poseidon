@@ -1,0 +1,10 @@
+.{
+    .name = "poseidon",
+    .version = "0.2.0",
+    .paths = .{
+        "build.zig.zon",
+        "build.zig",
+        "src",
+    },
+    .dependencies = .{},
+}
