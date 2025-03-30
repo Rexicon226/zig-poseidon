@@ -100,13 +100,13 @@ pub const Hasher = struct {
         return @bitCast(result);
     }
 
-    fn applyArk(hasher: *Hasher, params: Params, round: u64) void {
+    fn applyArk(hasher: *Hasher, params: Params, round: usize) void {
         for (hasher.state.slice(), 0..) |*a, i| {
             a.* = a.add(params.ark[round * params.width + i]);
         }
     }
 
-    fn applySBoxFull(hasher: *Hasher, width: u64) void {
+    fn applySBoxFull(hasher: *Hasher, width: usize) void {
         for (hasher.state.slice()[0..width]) |*s| {
             s.* = s.pow(u32, 5);
         }

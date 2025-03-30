@@ -11,7 +11,7 @@ const Benchmarks = enum {
 };
 
 pub fn main() !void {
-    const cpu0001: std.os.linux.cpu_set_t = [1]usize{0b0001} ++ ([_]usize{0} ** (16 - 1));
+    const cpu0001: std.os.linux.cpu_set_t = [1]usize{0b0001} ++ ([_]usize{0} ** (128 / @sizeOf(usize) - 1));
     try sched_setaffinity(0, &cpu0001);
 
     const stdout = std.io.getStdOut().writer();
