@@ -67,7 +67,7 @@ test "two input 3" {
     var hasher = Hasher.init(.big);
     try hasher.append(input[0..32]);
     try hasher.append(input[32..64]);
-    const hash = try hasher.finish();
+    const hash = hasher.finish();
 
     try expectEqualSlices(u8, &.{
         0,   122, 243, 70,  226, 211, 4,   39,  158, 121, 224,
@@ -399,7 +399,7 @@ test "chain" {
     for (chain[0..12]) |item| {
         try hasher.append(&item);
     }
-    const result = try hasher.finish();
+    const result = hasher.finish();
     try expectEqualSlices(u8, &chain[12], &result);
 }
 
