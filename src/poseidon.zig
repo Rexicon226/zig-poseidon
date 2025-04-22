@@ -69,10 +69,10 @@ pub const Hasher = struct {
         try hasher.state.append(element);
     }
 
-    pub fn finish(hasher: *Hasher) ![32]u8 {
+    pub fn finish(hasher: *Hasher) [32]u8 {
         const width = hasher.state.len;
         const params = PARAMS[width - 2];
-        if (width != params.width) return error.Unexpected;
+        if (width != params.width) unreachable;
 
         const all_rounds = params.full_rounds + params.partial_rounds;
         const half_rounds = params.full_rounds / 2;
