@@ -14,7 +14,9 @@ pub fn main() !void {
     const cpu0001: std.os.linux.cpu_set_t = [1]usize{0b0001} ++ ([_]usize{0} ** (128 / @sizeOf(usize) - 1));
     try sched_setaffinity(0, &cpu0001);
 
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout();
+    var writer = stdout.writer(&.{});
+
     const gpa = std.heap.c_allocator;
     var prng = std.Random.DefaultPrng.init(10);
     const random = prng.random();
@@ -35,13 +37,13 @@ pub fn main() !void {
     const benchmark = maybe_benchmark orelse @panic("expected benchmark");
 
     switch (benchmark) {
-        .hash => try benchHash(gpa, stdout, random),
+        .hash => try benchHash(gpa, &writer.interface, random),
     }
 }
 
 fn benchHash(
     gpa: std.mem.Allocator,
-    stdout: anytype,
+    stdout: *std.io.Writer,
     random: std.Random,
 ) !void {
     for (1..13) |i| {

@@ -13,9 +13,9 @@ jobs:
                 fetch-depth: 0
                 
           - name: setup-zig
-            uses: mlugg/setup-zig@v1
+            uses: mlugg/setup-zig@v2
             with:
-                version: 0.14.0
+                version: 0.15.1
                 
           - name: build
             run: zig build

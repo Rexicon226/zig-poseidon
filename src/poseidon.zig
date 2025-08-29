@@ -1,4 +1,5 @@
 const std = @import("std");
+const BoundedArray = @import("bounded_array.zig").BoundedArray;
 pub const Field = @import("fe.zig").Field;
 pub const Fe = Field(.{
     .fiat = @import("bn254_scalar_64.zig"),
@@ -25,7 +26,7 @@ const PARAMS: [12]Hasher.Params = .{
 
 pub const Hasher = struct {
     endian: std.builtin.Endian,
-    state: std.BoundedArray(Fe, 13),
+    state: BoundedArray(Fe, 13),
 
     pub const Params = struct {
         /// Round constants.
@@ -44,7 +45,7 @@ pub const Hasher = struct {
     };
 
     pub fn init(endian: std.builtin.Endian) Hasher {
-        var state: std.BoundedArray(Fe, 13) = .{};
+        var state: BoundedArray(Fe, 13) = .{};
         state.appendAssumeCapacity(Fe.zero);
         return .{
             .endian = endian,

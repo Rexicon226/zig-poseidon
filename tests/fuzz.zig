@@ -17,7 +17,7 @@ pub fn main() !void {
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
     _ = arg_iter.next();
-    const other_script = arg_iter.next() orelse usage();
+    const other_script = arg_iter.next() orelse @panic("invalid args");
 
     std.debug.print("other script: {s}\n", .{other_script});
 
@@ -26,11 +26,13 @@ pub fn main() !void {
 
     var node = std.Progress.start(.{ .root_name = "Runs" });
 
-    var threads = std.ArrayList(std.Thread).init(allocator);
+    var threads: std.ArrayList(std.Thread) = .empty;
+    defer threads.deinit(allocator);
+
     const num_threads = @max(1, (std.Thread.getCpuCount() catch 1));
     for (0..num_threads) |_| {
         const thread = try std.Thread.spawn(.{}, worker, .{ &node, other_script });
-        try threads.append(thread);
+        try threads.append(allocator, thread);
     }
     for (threads.items) |thread| {
         thread.join();
@@ -102,15 +104,18 @@ fn parseLightPoseidon(stdout: []u8, allocator: std.mem.Allocator) !Result {
     if (std.mem.startsWith(u8, stdout, "error")) {
         return .Error;
     } else if (std.mem.startsWith(u8, stdout, "result: ")) {
-        var list = std.ArrayList(u8).init(allocator);
+        var list: std.ArrayList(u8) = .empty;
+        defer list.deinit(allocator);
+
         const start = std.mem.indexOfScalar(u8, stdout, '[').?;
         const slice = stdout[start + 1 .. stdout.len - 2];
         var iter = std.mem.splitSequence(u8, slice, ", ");
         while (iter.next()) |item| {
             const integer = try std.fmt.parseInt(u8, item, 10);
-            try list.append(integer);
+            try list.append(allocator, integer);
         }
-        return .{ .Result = try list.toOwnedSlice() };
+
+        return .{ .Result = try list.toOwnedSlice(allocator) };
     } else @panic("unknown");
 }
 
@@ -119,24 +124,16 @@ fn bytesToArgs(
     path: []const u8,
     allocator: std.mem.Allocator,
 ) ![]const []const u8 {
-    var list = std.ArrayList([]const u8).init(allocator);
-    try list.append(try allocator.dupe(u8, path));
-    for (bytes) |byte| {
-        const arg = try std.fmt.allocPrint(allocator, "{d}", .{byte});
-        try list.append(arg);
+    const list = try allocator.alloc([]const u8, bytes.len + 1);
+    errdefer allocator.free(list);
+    list[0] = try allocator.dupe(u8, path);
+    for (bytes, list[1..]) |byte, *l| {
+        l.* = try std.fmt.allocPrint(allocator, "{d}", .{byte});
     }
-    return list.toOwnedSlice();
+    return list;
 }
 
 fn abortWithMismatch(bytes: []const u8) noreturn {
-    std.debug.print("failed with: {d}\n", .{bytes});
-    std.posix.abort();
-}
-
-fn usage() noreturn {
-    const stdout = std.io.getStdOut().writer();
-    stdout.print("usage: fuzz other_program\n", .{}) catch {
-        @panic("failed to print usage");
-    };
+    std.debug.print("failed with: {any}\n", .{bytes});
     std.posix.abort();
 }

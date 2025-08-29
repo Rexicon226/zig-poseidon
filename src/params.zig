@@ -6279,7 +6279,7 @@ pub const BN256_x5_12: Hasher.Params = .{
 };
 
 pub const BN256_x5_13: Hasher.Params = blk: {
-    @setEvalBranchQuota(40_0000);
+    @setEvalBranchQuota(400_000);
     break :blk .{
         .ark = &.{
             Element.fromArray(.{ 0xba41adffee856c88, 0x9921fe55fd71cc53, 0x9733baca82a86723, 0x0595cab62c5e06b8 }),

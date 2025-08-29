@@ -11,9 +11,11 @@ pub fn build(b: *std.Build) !void {
     });
 
     const test_exe = b.addTest(.{
-        .root_source_file = b.path("tests/test.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/test.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     test_exe.root_module.addImport("poseidon", poseidon_mod);
 
@@ -23,9 +25,11 @@ pub fn build(b: *std.Build) !void {
 
     const fuzz_exe = b.addExecutable(.{
         .name = "fuzz",
-        .root_source_file = b.path("tests/fuzz.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/fuzz.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     fuzz_exe.linkLibC();
     fuzz_exe.root_module.addImport("poseidon", poseidon_mod);
@@ -39,9 +43,11 @@ pub fn build(b: *std.Build) !void {
 
     const bench_exe = b.addExecutable(.{
         .name = "bench",
-        .root_source_file = b.path("tests/bench.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/bench.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     bench_exe.linkLibC();
     bench_exe.root_module.addImport("poseidon", poseidon_mod);
